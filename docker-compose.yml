@@ -1,0 +1,49 @@
+version: "3.6"
+
+services:
+  app:
+    entrypoint: java -jar la-med.jar
+    container_name: ${APP_NAME}-app
+    build:
+      context: .
+      dockerfile: .docker/java/Dockerfile
+    restart: always
+    ports:
+      - ${OUTER_APP_PORT}:${APP_PORT}
+    networks:
+      la-network:
+        aliases:
+          - app.${DOCKER_NETWORK}
+    env_file:
+      - .env
+    environment:
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:${DB_PORT}/${DB_DATABASE}
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+  db:
+    build:
+      context: .
+      dockerfile: .docker/pgsql/Dockerfile
+    restart: always
+    container_name: ${APP_NAME}-db
+    env_file:
+      - .env
+    networks:
+      la-network:
+        aliases:
+          - db.${DOCKER_NETWORK}
+    ports:
+      - ${OUTER_DB_PORT}:${DB_PORT}
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./.docker/postgres/datadir:/var/lib/postgresql/data
+
+
+networks:
+  la-network:
+    external: true
+    name: ${DOCKER_NETWORK}
